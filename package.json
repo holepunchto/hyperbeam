@@ -1,6 +1,6 @@
 {
   "name": "hyperbeam",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "A 1-1 end-to-end encrypted internet pipe powered by Hyperswarm",
   "main": "index.js",
   "bin": {
