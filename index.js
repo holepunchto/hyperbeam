@@ -20,6 +20,10 @@ module.exports = class Hyperbeam extends Duplex {
     this._onread = null
   }
 
+  get connected () {
+    return !!this._out
+  }
+
   _ondrainDone (err) {
     if (this._ondrain) {
       const cb = this._ondrain
@@ -111,6 +115,7 @@ module.exports = class Hyperbeam extends Duplex {
           this._out.on('drain', () => this._ondrain(null))
           this._swarm.leave(a)
           this._swarm.leave(b)
+          this.emit('connected')
           this._onopenDone(null)
         }
       })
