@@ -1,0 +1,23 @@
+{
+  "name": "hyperbeam",
+  "version": "0.0.0",
+  "description": "A 1-1 end-to-end encrypted internet pipe powered by Hyperswarm",
+  "main": "index.js",
+  "dependencies": {
+    "hyperswarm": "^2.15.2",
+    "noise-peer": "github:mafintosh/noise-peer#upgrade-simple-handshake",
+    "sodium-native": "^3.2.0",
+    "streamx": "^2.10.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mafintosh/hyperbeam.git"
+  },
+  "author": "Mathias Buus (@mafintosh)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mafintosh/hyperbeam/issues"
+  },
+  "homepage": "https://github.com/mafintosh/hyperbeam"
+}
