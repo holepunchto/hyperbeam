@@ -72,8 +72,13 @@ module.exports = class Hyperbeam extends Duplex {
     const [a, b] = this._dkeys()
 
     this._onopen = cb
-    this._swarm = hyperswarm({ ephemeral: true, queue: { multiplex: true } })
+    this._swarm = hyperswarm({ preferredPort: 49737, ephemeral: true, queue: { multiplex: true } })
 
+    this._swarm.on('listening', () => {
+      this._swarm.network.discovery.dht.on('initial-nodes', () => {
+        this.emit('remote-address', this._swarm.network.discovery.dht.remoteAddress() || { host: null, port: 0 })
+      })
+    })
     this._swarm.on('connection', (connection, info) => {
       if (info.type === 'tcp') connection.allowHalfOpen = true
       connection.on('error', () => {})
