@@ -22,7 +22,7 @@ beam.on('connected', function () {
 beam.on('end', () => beam.end())
 
 process.stdin.pipe(beam).pipe(process.stdout)
-process.stdin.unref()
+if (typeof process.stdin.unref === 'function') process.stdin.unref()
 
 process.once('SIGINT', () => {
   if (!beam.connected) closeASAP()
