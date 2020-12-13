@@ -4,7 +4,7 @@ const hyperswarm = require('hyperswarm')
 const noise = require('noise-peer')
 
 const MAX_DRIFT = 60e3 * 30 // thirty min
-const HALF_DRIFT = (MAX_DRIFT / 2) | 0
+const KEY_DRIFT = 60e3 * 2 // two min
 
 module.exports = class Hyperbeam extends Duplex {
   constructor (key) {
@@ -50,12 +50,12 @@ module.exports = class Hyperbeam extends Duplex {
 
   _keys () {
     const now = Date.now()
-    const then = now - (now % HALF_DRIFT)
+    const then = now - (now % KEY_DRIFT)
 
     return [
       noise.seedKeygen(hash(encode(then, this._key))),
-      noise.seedKeygen(hash(encode(then + HALF_DRIFT, this._key))),
-      noise.seedKeygen(hash(encode(then + 2 * HALF_DRIFT, this._key)))
+      noise.seedKeygen(hash(encode(then + KEY_DRIFT, this._key))),
+      noise.seedKeygen(hash(encode(then + 2 * KEY_DRIFT, this._key)))
     ]
   }
 
