@@ -137,7 +137,7 @@ module.exports = class Hyperbeam extends Duplex {
 
   _push (data) {
     const res = this.push(data)
-    this._onreadDone(null)
+    process.nextTick(() => this._onreadDone(null))
     return res
   }
 
