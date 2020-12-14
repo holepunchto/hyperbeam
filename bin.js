@@ -14,7 +14,7 @@ var beam
 try {
   beam = new Hyperbeam(process.argv.slice(2).join(' '))
 } catch (e) {
-  if (e.constructor.name === 'PassPhraseError') {
+  if (e.constructor.name === 'PassphraseError') {
     console.error(e.message)
     console.error('(If you are attempting to create a new pipe, do not provide a phrase and hyperbeam will generate one for you.)')
     process.exit(1)
@@ -22,7 +22,7 @@ try {
     throw e
   }
 }
-console.error('[hyperbeam] Pass phrase is:', beam.key)
+console.error('[hyperbeam] Passphrase is:', beam.key)
 
 beam.on('remote-address', function ({ host, port }) {
   if (!host) console.error('[hyperbeam] Could not detect remote address')

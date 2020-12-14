@@ -11,14 +11,14 @@ module.exports = class Hyperbeam extends Duplex {
   constructor (key) {
     super()
 
-    var announce = false
+    let announce = false
     if (!key) {
       key = generatePassphrase(3).join(' ')
       announce = true
     } else {
       for (let word of key.split(' ')) {
         if (!generatePassphrase.includes(word)) {
-          throw new PassPhraseError(`Invalid pass-phrase word: "${word}". Check your spelling and try again.`)
+          throw new PassphraseError(`Invalid passphrase word: "${word}". Check your spelling and try again.`)
         }
       }
     }
@@ -202,7 +202,7 @@ function hash (data, seed) {
   return out
 }
 
-class PassPhraseError extends Error {
+class PassphraseError extends Error {
   constructor(msg) {
     super(msg)
     this.name = this.constructor.name
