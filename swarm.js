@@ -12,6 +12,7 @@ module.exports = class BeamSwarm extends EventEmitter {
     this._key = key
     this._now = Date.now()
     this._swarm = null
+    this._topics = null
   }
 
   _keys () {
@@ -28,14 +29,16 @@ module.exports = class BeamSwarm extends EventEmitter {
   _dkeys () {
     const then = this._now - (this._now % MAX_DRIFT)
 
-    return [
+    this._topics = [
       hash('hyperbeam', hash(encode(then, this._key))),
       hash('hyperbeam', hash(encode(then + MAX_DRIFT, this._key)))
     ]
+
+    return this._topics
   }
 
   open () {
-    const [a, b] = this._dkeys()
+    this._dkeys()
     this._swarm = hyperswarm({ preferredPort: 49737, ephemeral: true, queue: { multiplex: true } })
 
     this._swarm.on('listening', () => {
@@ -66,13 +69,14 @@ module.exports = class BeamSwarm extends EventEmitter {
       })
     })
 
-    this._swarm.join(a, { lookup: true, announce: true })
-    this._swarm.join(b, { lookup: true, announce: true })
+    this._swarm.join(this._topics[0], { lookup: true, announce: true })
+    this._swarm.join(this._topics[1], { lookup: true, announce: true })
   }
 
   leave () {
-    this._swarm.leave(a)
-    this._swarm.leave(b)
+    if (!this._topics) return
+    this._swarm.leave(this._topics[0])
+    this._swarm.leave(this._topics[1])
   }
 
   destroy (cb) {
