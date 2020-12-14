@@ -49,7 +49,7 @@ module.exports = class Hyperbeam extends Duplex {
   _open(cb) {
     this._onopen = cb
     this._swarm.open()
-    this._swarm.on('connection', (s, info) => {
+    this._swarm.on('connection', s => {
       s.on('data', (data) => {
         if (!this._inc) {
           this._inc = s

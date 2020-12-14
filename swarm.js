@@ -65,7 +65,7 @@ module.exports = class BeamSwarm extends EventEmitter {
       })
 
       s.on('handshake', () => {
-        this.emit('connection', s, info)
+        this.emit('connection', s, connection, info)
       })
     })
 
