@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "hyperswarm": "^2.15.2",
-    "noise-peer": "github:mafintosh/noise-peer#upgrade-simple-handshake",
+    "noise-peer": "^2.1.1",
     "sodium-native": "^3.2.0",
     "streamx": "^2.10.0"
   },
