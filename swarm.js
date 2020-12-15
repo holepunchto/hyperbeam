@@ -39,7 +39,7 @@ module.exports = class BeamSwarm extends EventEmitter {
 
   open () {
     this._dkeys()
-    this._swarm = hyperswarm({ preferredPort: 49737, ephemeral: true, queue: { multiplex: true } })
+    this._swarm = hyperswarm({ announceLocalNetwork: true, preferredPort: 49737, ephemeral: true, queue: { multiplex: true } })
 
     this._swarm.on('listening', () => {
       this._swarm.network.discovery.dht.on('initial-nodes', () => {
