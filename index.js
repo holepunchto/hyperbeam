@@ -2,7 +2,7 @@ const { Duplex } = require('streamx')
 const BeamSwarm = require('./swarm')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor(key) {
+  constructor (key) {
     super()
 
     this._key = key
@@ -18,11 +18,11 @@ module.exports = class Hyperbeam extends Duplex {
     this._swarm.once('connected', () => this.emit('connected'))
   }
 
-  get connected() {
+  get connected () {
     return !!this._out
   }
 
-  _ondrainDone(err) {
+  _ondrainDone (err) {
     if (this._ondrain) {
       const cb = this._ondrain
       this._ondrain = null
@@ -30,7 +30,7 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _onreadDone(err) {
+  _onreadDone (err) {
     if (this._onread) {
       const cb = this._onread
       this._onread = null
@@ -38,7 +38,7 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _onopenDone(err) {
+  _onopenDone (err) {
     if (this._onopen) {
       const cb = this._onopen
       this._onopen = null
@@ -46,7 +46,7 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _open(cb) {
+  _open (cb) {
     this._onopen = cb
     this._swarm.open()
     this._swarm.on('connection', s => {
@@ -77,23 +77,23 @@ module.exports = class Hyperbeam extends Duplex {
     })
   }
 
-  _read(cb) {
+  _read (cb) {
     this._onread = cb
     if (this._inc) this._inc.resume()
   }
 
-  _push(data) {
+  _push (data) {
     const res = this.push(data)
     process.nextTick(() => this._onreadDone(null))
     return res
   }
 
-  _write(data, cb) {
+  _write (data, cb) {
     if (this._out.write(data) !== false) return cb(null)
     this._ondrain = cb
   }
 
-  _final(cb) {
+  _final (cb) {
     const done = () => {
       this._out.removeListener('finish', done)
       this._out.removeListener('error', done)
@@ -105,7 +105,7 @@ module.exports = class Hyperbeam extends Duplex {
     this._out.on('error', done)
   }
 
-  _predestroy() {
+  _predestroy () {
     if (this._inc) this._inc.destroy()
     if (this._out) this._out.destroy()
     const err = new Error('Destroyed')
@@ -114,8 +114,7 @@ module.exports = class Hyperbeam extends Duplex {
     this._ondrainDone(err)
   }
 
-  _destroy(cb) {
+  _destroy (cb) {
     return this._swarm.destroy(cb)
   }
 }
-
