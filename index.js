@@ -2,6 +2,7 @@ const { Duplex } = require('streamx')
 const sodium = require('sodium-native')
 const hyperswarm = require('hyperswarm')
 const noise = require('noise-peer')
+const generatePassphrase = require('eff-diceware-passphrase')
 
 const MAX_DRIFT = 60e3 * 30 // thirty min
 const KEY_DRIFT = 60e3 * 2 // two min
@@ -10,7 +11,20 @@ module.exports = class Hyperbeam extends Duplex {
   constructor (key) {
     super()
 
-    this._key = key
+    let announce = false
+    if (!key) {
+      key = generatePassphrase(3).join(' ')
+      announce = true
+    } else {
+      for (let word of key.split(' ')) {
+        if (!generatePassphrase.includes(word)) {
+          throw new PassphraseError(`Invalid passphrase word: "${word}". Check your spelling and try again.`)
+        }
+      }
+    }
+
+    this.key = key
+    this._announce = announce
     this._swarm = null
     this._out = null
     this._inc = null
@@ -53,9 +67,9 @@ module.exports = class Hyperbeam extends Duplex {
     const then = now - (now % KEY_DRIFT)
 
     return [
-      noise.seedKeygen(hash(encode(then, this._key))),
-      noise.seedKeygen(hash(encode(then + KEY_DRIFT, this._key))),
-      noise.seedKeygen(hash(encode(then + 2 * KEY_DRIFT, this._key)))
+      noise.seedKeygen(hash(encode(then, this.key))),
+      noise.seedKeygen(hash(encode(then + KEY_DRIFT, this.key))),
+      noise.seedKeygen(hash(encode(then + 2 * KEY_DRIFT, this.key)))
     ]
   }
 
@@ -63,8 +77,8 @@ module.exports = class Hyperbeam extends Duplex {
     const then = this._now - (this._now % MAX_DRIFT)
 
     return [
-      hash('hyperbeam', hash(encode(then, this._key))),
-      hash('hyperbeam', hash(encode(then + MAX_DRIFT, this._key)))
+      hash('hyperbeam', hash(encode(then, this.key))),
+      hash('hyperbeam', hash(encode(then + MAX_DRIFT, this.key)))
     ]
   }
 
@@ -126,8 +140,8 @@ module.exports = class Hyperbeam extends Duplex {
       })
     })
 
-    this._swarm.join(a, { lookup: true, announce: true })
-    this._swarm.join(b, { lookup: true, announce: true })
+    this._swarm.join(a, { lookup: true, announce: this._announce })
+    this._swarm.join(b, { lookup: true, announce: this._announce })
   }
 
   _read (cb) {
@@ -186,4 +200,17 @@ function hash (data, seed) {
   if (seed) sodium.crypto_generichash(out, Buffer.from(data), seed)
   else sodium.crypto_generichash(out, Buffer.from(data))
   return out
+}
+
+class PassphraseError extends Error {
+  constructor(msg) {
+    super(msg)
+    this.name = this.constructor.name
+    this.message = msg
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, this.constructor)
+    } else {
+      this.stack = (new Error(msg)).stack
+    }
+  }
 }

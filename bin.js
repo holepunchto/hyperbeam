@@ -2,12 +2,27 @@
 
 const Hyperbeam = require('./')
 
-if (process.argv.length < 3) {
-  console.error('Usage: hyperbeam <topic>')
+if (process.argv.includes('-h') || process.argv.includes('--help')) {
+  console.error('Usage: hyperbeam [passphrase]')
+  console.error('')
+  console.error('  Creates a 1-1 end-to-end encrypted network pipe.')
+  console.error('  If a passphrase is not supplied, will create a new phrase and begin listening.')
   process.exit(1)
 }
 
-const beam = new Hyperbeam(process.argv.slice(2).join(' '))
+var beam
+try {
+  beam = new Hyperbeam(process.argv.slice(2).join(' '))
+} catch (e) {
+  if (e.constructor.name === 'PassphraseError') {
+    console.error(e.message)
+    console.error('(If you are attempting to create a new pipe, do not provide a phrase and hyperbeam will generate one for you.)')
+    process.exit(1)
+  } else {
+    throw e
+  }
+}
+console.error('[hyperbeam] Passphrase is:', beam.key)
 
 beam.on('remote-address', function ({ host, port }) {
   if (!host) console.error('[hyperbeam] Could not detect remote address')
