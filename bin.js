@@ -35,8 +35,7 @@ beam.on('connected', function () {
 })
 
 beam.on('error', function (e) {
-  console.log(e)
-  console.error('[hyperbeam]', e.message)
+  console.error('[hyperbeam] Error:', e.message)
   closeASAP()
 })
 
