@@ -56,9 +56,7 @@ module.exports = class Hyperbeam extends Duplex {
 
   async _open (cb) {
     try {
-      const keyBuf = fromBase32(this.key)
-      const dkey = hash('hyperbeam', keyBuf)
-      const serverKeyPair = DHT.keyPair(keyBuf)
+      const keyPair = DHT.keyPair(fromBase32(this.key))
 
       this._onopen = cb
       this._node = new DHT({ ephemeral: true })
@@ -85,29 +83,23 @@ module.exports = class Hyperbeam extends Duplex {
           this._out = s
           this._out.on('error', (err) => this.destroy(err))
           this._out.on('drain', () => this._ondrain(null))
-          if (this._announce) {
-            this._node.unannounce(dkey, serverKeyPair)
-          }
           this.emit('connected')
           this._onopenDone(null)
         }
       }
 
       if (this._announce) {
-        this._server = this._node.createServer()
+        this._server = this._node.createServer({
+          firewall (remotePublicKey) {
+            return !remotePublicKey.equals(keyPair.publicKey)
+          }
+        })
         this._server.on('connection', onConnection)
-        await this._server.listen(serverKeyPair)
+        await this._server.listen(keyPair)
         this.emit('remote-address', this._server.address() || {host: null, port: 0})
-        await this._node.announce(dkey, serverKeyPair).finished()
       } else {
-        const stream = await toArray(this._node.lookup(dkey))
-        const peers = stream.reduce((acc, hit) => acc.concat(hit.peers), [])
-        const peer = peers.find(p => serverKeyPair.publicKey.equals(p.publicKey))
-        if (!peer) {
-          throw new PeerNotFoundError('No device was found. They may not be online anymore.')
-        }
         this.emit('remote-address', this._node.address() || {host: null, port: 0})
-        const connection = this._node.connect(peer.publicKey, {nodes: peer.nodes})
+        const connection = this._node.connect(keyPair.publicKey, {keyPair})
         await new Promise((resolve, reject) => {
           connection.once('open', resolve)
           connection.once('close', reject)
