@@ -97,13 +97,13 @@ module.exports = class Hyperbeam extends Duplex {
         await this._server.listen(keyPair)
         this.emit('remote-address', this._server.address() || {host: null, port: 0})
       } else {
-        this.emit('remote-address', this._node.address() || {host: null, port: 0})
         const connection = this._node.connect(keyPair.publicKey, {keyPair})
         await new Promise((resolve, reject) => {
           connection.once('open', resolve)
           connection.once('close', reject)
           connection.once('error', reject)
         })
+        this.emit('remote-address', this._node.address() || {host: null, port: 0})
         onConnection(connection)
       }
     } catch (e) {
