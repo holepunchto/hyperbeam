@@ -7,13 +7,11 @@
     "hyperbeam": "./bin.js"
   },
   "dependencies": {
-    "eff-diceware-passphrase": "^3.0.0",
-    "hyperswarm": "^2.15.2",
-    "noise-peer": "^2.1.1",
+    "@hyperswarm/dht": "^5.0.0",
+    "hi-base32": "^0.5.1",
     "sodium-native": "^3.2.0",
     "streamx": "^2.10.0"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/mafintosh/hyperbeam.git"

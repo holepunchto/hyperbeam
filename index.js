@@ -1,11 +1,8 @@
 const { Duplex } = require('streamx')
+const crypto = require('crypto')
+const b32 = require('hi-base32')
 const sodium = require('sodium-native')
-const hyperswarm = require('hyperswarm')
-const noise = require('noise-peer')
-const generatePassphrase = require('eff-diceware-passphrase')
-
-const MAX_DRIFT = 60e3 * 30 // thirty min
-const KEY_DRIFT = 60e3 * 2 // two min
+const DHT = require('@hyperswarm/dht')
 
 module.exports = class Hyperbeam extends Duplex {
   constructor (key) {
@@ -13,19 +10,14 @@ module.exports = class Hyperbeam extends Duplex {
 
     let announce = false
     if (!key) {
-      key = generatePassphrase(3).join(' ')
+      key = toBase32(crypto.randomBytes(32))
       announce = true
-    } else {
-      for (let word of key.split(' ')) {
-        if (!generatePassphrase.includes(word)) {
-          throw new PassphraseError(`Invalid passphrase word: "${word}". Check your spelling and try again.`)
-        }
-      }
     }
 
     this.key = key
     this._announce = announce
-    this._swarm = null
+    this._node = null
+    this._server = null
     this._out = null
     this._inc = null
     this._now = Date.now()
@@ -62,56 +54,14 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _keys () {
-    const now = Date.now()
-    const then = now - (now % KEY_DRIFT)
+  async _open (cb) {
+    try {
+      const keyPair = DHT.keyPair(fromBase32(this.key))
 
-    return [
-      noise.seedKeygen(hash(encode(then, this.key))),
-      noise.seedKeygen(hash(encode(then + KEY_DRIFT, this.key))),
-      noise.seedKeygen(hash(encode(then + 2 * KEY_DRIFT, this.key)))
-    ]
-  }
+      this._onopen = cb
+      this._node = new DHT({ ephemeral: true })
 
-  _dkeys () {
-    const then = this._now - (this._now % MAX_DRIFT)
-
-    return [
-      hash('hyperbeam', hash(encode(then, this.key))),
-      hash('hyperbeam', hash(encode(then + MAX_DRIFT, this.key)))
-    ]
-  }
-
-  _open (cb) {
-    const [a, b] = this._dkeys()
-
-    this._onopen = cb
-    this._swarm = hyperswarm({ preferredPort: 49737, ephemeral: true, queue: { multiplex: true } })
-
-    this._swarm.on('listening', () => {
-      this._swarm.network.discovery.dht.on('initial-nodes', () => {
-        this.emit('remote-address', this._swarm.network.discovery.dht.remoteAddress() || { host: null, port: 0 })
-      })
-    })
-    this._swarm.on('connection', (connection, info) => {
-      if (info.type === 'tcp') connection.allowHalfOpen = true
-      connection.on('error', () => {})
-
-      const staticKeyPairs = this._keys()
-
-      const s = noise(connection, info.client, {
-        pattern: 'XX',
-        staticKeyPair: staticKeyPairs[1],
-        onstatickey (remotePublicKey, cb) {
-          for (const { publicKey } of staticKeyPairs) {
-            if (publicKey.equals(remotePublicKey)) return cb(null)
-          }
-
-          cb(new Error('Remote public key did not match'))
-        }
-      })
-
-      s.on('handshake', () => {
+      const onConnection = s => {
         s.on('data', (data) => {
           if (!this._inc) {
             this._inc = s
@@ -132,16 +82,33 @@ module.exports = class Hyperbeam extends Duplex {
           this._out = s
           this._out.on('error', (err) => this.destroy(err))
           this._out.on('drain', () => this._ondrain(null))
-          this._swarm.leave(a)
-          this._swarm.leave(b)
           this.emit('connected')
           this._onopenDone(null)
         }
-      })
-    })
+      }
 
-    this._swarm.join(a, { lookup: true, announce: this._announce })
-    this._swarm.join(b, { lookup: true, announce: this._announce })
+      if (this._announce) {
+        this._server = this._node.createServer({
+          firewall (remotePublicKey) {
+            return !remotePublicKey.equals(keyPair.publicKey)
+          }
+        })
+        this._server.on('connection', onConnection)
+        await this._server.listen(keyPair)
+        this.emit('remote-address', this._server.address() || {host: null, port: 0})
+      } else {
+        const connection = this._node.connect(keyPair.publicKey, {keyPair})
+        await new Promise((resolve, reject) => {
+          connection.once('open', resolve)
+          connection.once('close', reject)
+          connection.once('error', reject)
+        })
+        this.emit('remote-address', this._node.address() || {host: null, port: 0})
+        onConnection(connection)
+      }
+    } catch (e) {
+      cb(e)
+    }
   }
 
   _read (cb) {
@@ -181,18 +148,12 @@ module.exports = class Hyperbeam extends Duplex {
     this._ondrainDone(err)
   }
 
-  _destroy (cb) {
-    if (!this._swarm) return cb(null)
-    this._swarm.on('close', () => cb(null))
-    this._swarm.destroy()
+  async _destroy (cb) {
+    if (!this._node) return cb(null)
+    if (this._server) await this._server.close().catch(e => undefined)
+    await this._node.destroy().catch(e => undefined)
+    cb(null)
   }
-}
-
-function encode (num, key) {
-  const buf = Buffer.alloc(8 + Buffer.byteLength(key))
-  buf.writeDoubleBE(num)
-  buf.write(key, 8)
-  return buf
 }
 
 function hash (data, seed) {
@@ -202,7 +163,7 @@ function hash (data, seed) {
   return out
 }
 
-class PassphraseError extends Error {
+class PeerNotFoundError extends Error {
   constructor(msg) {
     super(msg)
     this.name = this.constructor.name
@@ -213,4 +174,18 @@ class PassphraseError extends Error {
       this.stack = (new Error(msg)).stack
     }
   }
+}
+
+async function toArray (iterable) {
+  const result = []
+  for await (const data of iterable) result.push(data)
+  return result
+}
+
+function toBase32 (buf) {
+  return b32.encode(buf).replace(/=/g, '').toLowerCase()
+}
+
+function fromBase32 (str) {
+  return Buffer.from(b32.decode.asBytes(str.toUpperCase()))
 }
