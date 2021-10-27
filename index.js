@@ -1,10 +1,8 @@
 const { Duplex } = require('streamx')
+const crypto = require('crypto')
+const b32 = require('hi-base32')
 const sodium = require('sodium-native')
-const generatePassphrase = require('eff-diceware-passphrase')
 const DHT = require('@hyperswarm/dht')
-
-const MAX_DRIFT = 60e3 * 30 // thirty min
-const KEY_DRIFT = 60e3 * 2 // two min
 
 module.exports = class Hyperbeam extends Duplex {
   constructor (key) {
@@ -12,14 +10,8 @@ module.exports = class Hyperbeam extends Duplex {
 
     let announce = false
     if (!key) {
-      key = generatePassphrase(3).join(' ')
+      key = toBase32(crypto.randomBytes(32))
       announce = true
-    } else {
-      for (const word of key.split(' ')) {
-        if (!generatePassphrase.words.includes(word)) {
-          throw new PassphraseError(`Invalid passphrase word: "${word}". Check your spelling and try again.`)
-        }
-      }
     }
 
     this.key = key
@@ -62,38 +54,15 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _keys (role) {
-    const now = Date.now()
-    const then = now - (now % KEY_DRIFT)
-
-    const key = `${role} ${this.key}`
-    return [
-      DHT.keyPair(hash(encode(then, key))),
-      DHT.keyPair(hash(encode(then + KEY_DRIFT, key))),
-      DHT.keyPair(hash(encode(then + 2 * KEY_DRIFT, key)))
-    ]
-  }
-
-  _dkeys () {
-    const then = this._now - (this._now % MAX_DRIFT)
-
-    return [
-      hash('hyperbeam', hash(encode(then, this.key))),
-      hash('hyperbeam', hash(encode(then + MAX_DRIFT, this.key)))
-    ]
-  }
-
   async _open (cb) {
     try {
-      const [a, b] = this._dkeys()
+      const keyBuf = fromBase32(this.key)
+      const dkey = hash('hyperbeam', keyBuf)
+      const serverKeyPair = DHT.keyPair(keyBuf)
 
       this._onopen = cb
       this._node = new DHT({ ephemeral: true })
       await this._node.ready()
-
-      const serverKeys = this._keys('server')
-      const clientKeys = this._keys('client')
-      const myKeyPair = this._announce ? serverKeys[1] : clientKeys[1]
 
       const onConnection = s => {
         s.on('data', (data) => {
@@ -117,8 +86,7 @@ module.exports = class Hyperbeam extends Duplex {
           this._out.on('error', (err) => this.destroy(err))
           this._out.on('drain', () => this._ondrain(null))
           if (this._announce) {
-            this._node.unannounce(a, myKeyPair)
-            this._node.unannounce(b, myKeyPair)
+            this._node.unannounce(dkey, serverKeyPair)
           }
           this.emit('connected')
           this._onopenDone(null)
@@ -126,34 +94,20 @@ module.exports = class Hyperbeam extends Duplex {
       }
 
       if (this._announce) {
-        this._server = this._node.createServer({
-          firewall (remotePublicKey) {
-            for (const { publicKey } of clientKeys) {
-              if (publicKey.equals(remotePublicKey)) return false
-            }
-            return true
-          }
-        })
+        this._server = this._node.createServer()
         this._server.on('connection', onConnection)
-        await this._server.listen(myKeyPair)
+        await this._server.listen(serverKeyPair)
         this.emit('remote-address', this._server.address() || {host: null, port: 0})
-        await this._node.announce(a, myKeyPair).finished()
-        await this._node.announce(b, myKeyPair).finished()
+        await this._node.announce(dkey, serverKeyPair).finished()
       } else {
-        const [stream1, stream2] = await Promise.all([
-          toArray(this._node.lookup(a)),
-          toArray(this._node.lookup(b))
-        ])
-        const peers = stream1.concat(stream2).reduce((acc, hit) => acc.concat(hit.peers), [])
-        const peer = peers.find(p => serverKeys.find(kp => kp.publicKey.equals(p.publicKey)))
+        const stream = await toArray(this._node.lookup(dkey))
+        const peers = stream.reduce((acc, hit) => acc.concat(hit.peers), [])
+        const peer = peers.find(p => serverKeyPair.publicKey.equals(p.publicKey))
         if (!peer) {
-          throw new PeerNotFoundError('No device was found. They may not be online anymore, or the passphrase may have expired.')
+          throw new PeerNotFoundError('No device was found. They may not be online anymore.')
         }
         this.emit('remote-address', this._node.address() || {host: null, port: 0})
-        const connection = this._node.connect(peer.publicKey, {
-          nodes: peer.nodes,
-          keyPair: myKeyPair
-        })
+        const connection = this._node.connect(peer.publicKey, {nodes: peer.nodes})
         await new Promise((resolve, reject) => {
           connection.once('open', resolve)
           connection.once('close', reject)
@@ -211,13 +165,6 @@ module.exports = class Hyperbeam extends Duplex {
   }
 }
 
-function encode (num, key) {
-  const buf = Buffer.alloc(8 + Buffer.byteLength(key))
-  buf.writeDoubleBE(num)
-  buf.write(key, 8)
-  return buf
-}
-
 function hash (data, seed) {
   const out = Buffer.alloc(32)
   if (seed) sodium.crypto_generichash(out, Buffer.from(data), seed)
@@ -238,22 +185,16 @@ class PeerNotFoundError extends Error {
   }
 }
 
-
-class PassphraseError extends Error {
-  constructor(msg) {
-    super(msg)
-    this.name = this.constructor.name
-    this.message = msg
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, this.constructor)
-    } else {
-      this.stack = (new Error(msg)).stack
-    }
-  }
-}
-
 async function toArray (iterable) {
   const result = []
   for await (const data of iterable) result.push(data)
   return result
+}
+
+function toBase32 (buf) {
+  return b32.encode(buf).replace(/=/g, '').toLowerCase()
+}
+
+function fromBase32 (str) {
+  return Buffer.from(b32.decode.asBytes(str.toUpperCase()))
 }

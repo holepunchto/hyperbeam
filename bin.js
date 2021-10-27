@@ -34,6 +34,12 @@ beam.on('connected', function () {
   console.error('[hyperbeam] Success! Encrypted tunnel established to remote peer')
 })
 
+beam.on('error', function (e) {
+  console.log(e)
+  console.error('[hyperbeam]', e.message)
+  closeASAP()
+})
+
 beam.on('end', () => beam.end())
 
 process.stdin.pipe(beam).pipe(process.stdout)

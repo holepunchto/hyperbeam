@@ -11,10 +11,10 @@ npm install hyperbeam
 ``` js
 const Hyperbeam = require('hyperbeam')
 
-// 'fraying stopping granular' is a somewhat unique passphrase used to derive a discovery key
-// to find the other side of your pipe. it's seemed with a determistic timestamp from ~+-30min for better privacy
+// 'neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa' is 32-byte unique passphrase
+// to find the other side of your pipe.
 // once the other peer is discovered it is used to derive a noise keypair as well.
-const beam = new Hyperbeam('fraying stopping granular')
+const beam = new Hyperbeam('neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa')
 
 // to generate a passphrase, leave the constructor empty and hyperbeam will generate one for you
 // const beam = new Hyperbeam()
@@ -42,11 +42,11 @@ Then on one machine run
 echo 'hello world' | hyperbeam
 ```
 
-This will generate a phrase, eg "fraying stopping granular". Then on another machine run
+This will generate a phrase, eg "neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa". Then on another machine run
 
 ```sh
 # will print "hello world"
-hyperbeam fraying stopping granular
+hyperbeam neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa
 ```
 
 That's it! Happy piping.
@@ -57,7 +57,7 @@ That's it! Happy piping.
 
 Make a new Hyperbeam duplex stream.
  
-Will auto connect to another peer making using the same key within ~30 min with an end to end encrypted tunnel.
+Will auto connect to another peer using the same key with an end to end encrypted tunnel.
 
 When the other peer writes it's emitted as `data` on this stream.
 
