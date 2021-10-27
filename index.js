@@ -60,7 +60,6 @@ module.exports = class Hyperbeam extends Duplex {
 
       this._onopen = cb
       this._node = new DHT({ ephemeral: true })
-      await this._node.ready()
 
       const onConnection = s => {
         s.on('data', (data) => {
