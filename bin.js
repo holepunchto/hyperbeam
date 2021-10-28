@@ -12,7 +12,7 @@ if (process.argv.includes('-h') || process.argv.includes('--help')) {
 
 let beam
 try {
-  beam = new Hyperbeam(process.argv.slice(2).join(' '), process.argv.includes('-r'))
+  beam = new Hyperbeam(process.argv[2], process.argv.includes('-r'))
 } catch (e) {
   if (e.constructor.name === 'PassphraseError') {
     console.error(e.message)
