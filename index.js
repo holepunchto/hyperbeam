@@ -1,21 +1,19 @@
 const { Duplex } = require('streamx')
 const crypto = require('crypto')
 const b32 = require('hi-base32')
-const sodium = require('sodium-native')
 const DHT = require('@hyperswarm/dht')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor (key) {
+  constructor (key, announce = false) {
     super()
 
-    let announce = false
     if (!key) {
       key = toBase32(crypto.randomBytes(32))
       announce = true
     }
 
     this.key = key
-    this._announce = announce
+    this.announce = announce
     this._node = null
     this._server = null
     this._out = null
@@ -55,60 +53,67 @@ module.exports = class Hyperbeam extends Duplex {
   }
 
   async _open (cb) {
-    try {
-      const keyPair = DHT.keyPair(fromBase32(this.key))
+    const keyPair = DHT.keyPair(fromBase32(this.key))
 
-      this._onopen = cb
-      this._node = new DHT({ ephemeral: true })
+    this._onopen = cb
+    this._node = new DHT({ ephemeral: true })
 
-      const onConnection = s => {
-        s.on('data', (data) => {
-          if (!this._inc) {
-            this._inc = s
-            this._inc.on('error', (err) => this.destroy(err))
-            this._inc.on('end', () => this._push(null))
-          }
-
-          if (s !== this._inc) return
-          if (this._push(data) === false) s.pause()
-        })
-
-        s.on('end', () => {
-          if (this._inc) return
-          this._push(null)
-        })
-
-        if (!this._out) {
-          this._out = s
-          this._out.on('error', (err) => this.destroy(err))
-          this._out.on('drain', () => this._ondrain(null))
-          this.emit('connected')
-          this._onopenDone(null)
+    const onConnection = s => {
+      s.on('data', (data) => {
+        if (!this._inc) {
+          this._inc = s
+          this._inc.on('error', (err) => this.destroy(err))
+          this._inc.on('end', () => this._push(null))
         }
-      }
 
-      if (this._announce) {
-        this._server = this._node.createServer({
-          firewall (remotePublicKey) {
-            return !remotePublicKey.equals(keyPair.publicKey)
-          }
-        })
-        this._server.on('connection', onConnection)
-        await this._server.listen(keyPair)
-        this.emit('remote-address', this._server.address() || {host: null, port: 0})
-      } else {
-        const connection = this._node.connect(keyPair.publicKey, {keyPair})
-        await new Promise((resolve, reject) => {
-          connection.once('open', resolve)
-          connection.once('close', reject)
-          connection.once('error', reject)
-        })
-        this.emit('remote-address', this._node.address() || {host: null, port: 0})
-        onConnection(connection)
+        if (s !== this._inc) return
+        if (this._push(data) === false) s.pause()
+      })
+
+      s.on('end', () => {
+        if (this._inc) return
+        this._push(null)
+      })
+
+      if (!this._out) {
+        this._out = s
+        this._out.on('error', (err) => this.destroy(err))
+        this._out.on('drain', () => this._ondrain(null))
+        this.emit('connected')
+        this._onopenDone(null)
       }
-    } catch (e) {
-      cb(e)
     }
+
+    if (this.announce) {
+      this._server = this._node.createServer({
+        firewall (remotePublicKey) {
+          return !remotePublicKey.equals(keyPair.publicKey)
+        }
+      })
+      this._server.on('connection', onConnection)
+      try {
+        await this._server.listen(keyPair)
+      } catch (err) {
+        this._onopenDone(err)
+        return
+      }
+      this.emit('remote-address', { host: this._node.host, port: this._node.port })
+      return
+    }
+
+    const connection = this._node.connect(keyPair.publicKey, { keyPair })
+    try {
+      await new Promise((resolve, reject) => {
+        connection.once('open', resolve)
+        connection.once('close', reject)
+        connection.once('error', reject)
+      })
+    } catch (err) {
+      this._onopenDone(err)
+      return
+    }
+    this.emit('remote-address', { host: this._node.host, port: this._node.port })
+    onConnection(connection)
   }
 
   _read (cb) {
@@ -154,32 +159,6 @@ module.exports = class Hyperbeam extends Duplex {
     await this._node.destroy().catch(e => undefined)
     cb(null)
   }
-}
-
-function hash (data, seed) {
-  const out = Buffer.alloc(32)
-  if (seed) sodium.crypto_generichash(out, Buffer.from(data), seed)
-  else sodium.crypto_generichash(out, Buffer.from(data))
-  return out
-}
-
-class PeerNotFoundError extends Error {
-  constructor(msg) {
-    super(msg)
-    this.name = this.constructor.name
-    this.message = msg
-    if (typeof Error.captureStackTrace === 'function') {
-      Error.captureStackTrace(this, this.constructor)
-    } else {
-      this.stack = (new Error(msg)).stack
-    }
-  }
-}
-
-async function toArray (iterable) {
-  const result = []
-  for await (const data of iterable) result.push(data)
-  return result
 }
 
 function toBase32 (buf) {

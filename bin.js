@@ -10,9 +10,9 @@ if (process.argv.includes('-h') || process.argv.includes('--help')) {
   process.exit(1)
 }
 
-var beam
+let beam
 try {
-  beam = new Hyperbeam(process.argv.slice(2).join(' '))
+  beam = new Hyperbeam(process.argv.slice(2).join(' '), process.argv.includes('-r'))
 } catch (e) {
   if (e.constructor.name === 'PassphraseError') {
     console.error(e.message)
@@ -22,12 +22,17 @@ try {
     throw e
   }
 }
-console.error('[hyperbeam] Passphrase is:', beam.key)
+
+if (beam.announce) {
+  console.error('[hyperbeam] Run hyperbeam ' + beam.key + ' to connect')
+  console.error('[hyperbeam] To restart this side of the pipe with the same key add -r to the above')
+} else {
+  console.error('[hyperbeam] Connecting pipe...')
+}
 
 beam.on('remote-address', function ({ host, port }) {
   if (!host) console.error('[hyperbeam] Could not detect remote address')
   else console.error('[hyperbeam] Joined the DHT - remote address is ' + host + ':' + port)
-  if (port) console.error('[hyperbeam] Network is holepunchable \\o/')
 })
 
 beam.on('connected', function () {
