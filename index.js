@@ -1,5 +1,7 @@
 const { Duplex } = require('streamx')
 const sodium = require('sodium-universal')
+const b4a = require('b4a')
+const queueTick = require('queue-tick')
 const b32 = require('hi-base32')
 const DHT = require('@hyperswarm/dht')
 
@@ -137,7 +139,7 @@ module.exports = class Hyperbeam extends Duplex {
 
   _push (data) {
     const res = this.push(data)
-    process.nextTick(() => this._onreadDone(null))
+    queueTick(() => this._onreadDone(null))
     return res
   }
 
@@ -180,11 +182,11 @@ function toBase32 (buf) {
 }
 
 function fromBase32 (str) {
-  return Buffer.from(b32.decode.asBytes(str.toUpperCase()))
+  return b4a.from(b32.decode.asBytes(str.toUpperCase()))
 }
 
 function randomBytes (length) {
-  const buffer = Buffer.alloc(length)
+  const buffer = b4a.alloc(length)
   sodium.randombytes_buf(buffer)
-  return buffer.toString('hex')
+  return buffer
 }
