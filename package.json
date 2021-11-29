@@ -6,10 +6,16 @@
   "bin": {
     "hyperbeam": "./bin.js"
   },
+  "scripts": {
+    "test": "standard"
+  },
   "dependencies": {
     "@hyperswarm/dht": "^5.0.0",
     "hi-base32": "^0.5.1",
     "streamx": "^2.10.0"
+  },
+  "devDependencies": {
+    "standard": "^16.0.4"
   },
   "repository": {
     "type": "git",

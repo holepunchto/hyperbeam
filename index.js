@@ -4,8 +4,21 @@ const b32 = require('hi-base32')
 const DHT = require('@hyperswarm/dht')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor (key, announce = false) {
+  constructor (key, options) {
     super()
+
+    if (typeof key !== 'string') {
+      options = key
+      key = null
+    }
+
+    if (typeof options === 'boolean') {
+      options = { announce: options }
+    } else if (typeof options !== 'object') {
+      options = {}
+    }
+
+    let announce = !!options.announce
 
     if (!key) {
       key = toBase32(crypto.randomBytes(32))
@@ -14,7 +27,7 @@ module.exports = class Hyperbeam extends Duplex {
 
     this.key = key
     this.announce = announce
-    this._node = null
+    this._node = options.dht || null
     this._server = null
     this._out = null
     this._inc = null
@@ -56,7 +69,8 @@ module.exports = class Hyperbeam extends Duplex {
     const keyPair = DHT.keyPair(fromBase32(this.key))
 
     this._onopen = cb
-    this._node = new DHT({ ephemeral: true })
+
+    if (!this._node) this._node = new DHT({ ephemeral: true })
 
     const onConnection = s => {
       s.on('data', (data) => {
