@@ -12,6 +12,7 @@
   "dependencies": {
     "@hyperswarm/dht": "^5.0.0",
     "hi-base32": "^0.5.1",
+    "sodium-universal": "^3.0.4",
     "streamx": "^2.10.0"
   },
   "devDependencies": {

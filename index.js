@@ -1,5 +1,5 @@
 const { Duplex } = require('streamx')
-const crypto = require('crypto')
+const sodium = require('sodium-universal')
 const b32 = require('hi-base32')
 const DHT = require('@hyperswarm/dht')
 
@@ -21,7 +21,7 @@ module.exports = class Hyperbeam extends Duplex {
     let announce = !!options.announce
 
     if (!key) {
-      key = toBase32(crypto.randomBytes(32))
+      key = toBase32(randomBytes(32))
       announce = true
     }
 
@@ -181,4 +181,10 @@ function toBase32 (buf) {
 
 function fromBase32 (str) {
   return Buffer.from(b32.decode.asBytes(str.toUpperCase()))
+}
+
+function randomBytes (length) {
+  const buffer = Buffer.alloc(length)
+  sodium.randombytes_buf(buffer)
+  return buffer.toString('hex')
 }
