@@ -53,7 +53,7 @@ That's it! Happy piping.
 
 ## API
 
-#### `const stream = new Hyperbeam([key])`
+#### `const stream = new Hyperbeam([key][, options])`
 
 Make a new Hyperbeam duplex stream.
  
@@ -64,6 +64,10 @@ When the other peer writes it's emitted as `data` on this stream.
 Likewise when you write to this stream it's emitted as `data` on the other peers stream.
 
 If you do not pass a `key` into the constructor (the passphrase), one will be generated and put on `stream.key`.
+
+`options` include:
+
+- `dht`: A DHT instance. Defaults to a new instance.
 
 #### `stream.key`
 
