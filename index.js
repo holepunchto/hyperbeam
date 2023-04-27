@@ -3,7 +3,7 @@ const sodium = require('sodium-universal')
 const b4a = require('b4a')
 const queueTick = require('queue-tick')
 const b32 = require('hi-base32')
-const DHT = require('@hyperswarm/dht')
+const DHT = require('hyperdht')
 
 module.exports = class Hyperbeam extends Duplex {
   constructor (key, options) {
