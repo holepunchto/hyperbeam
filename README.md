@@ -75,4 +75,4 @@ The passphrase used by the stream for connection.
 
 ## License
 
-MIT
+Apache-2.0
