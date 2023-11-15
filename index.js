@@ -103,7 +103,7 @@ module.exports = class Hyperbeam extends Duplex {
     if (this.announce) {
       this._server = this._node.createServer({
         firewall (remotePublicKey) {
-          return !remotePublicKey.equals(keyPair.publicKey)
+          return !b4a.equals(remotePublicKey, keyPair.publicKey)
         }
       })
       this._server.on('connection', onConnection)
