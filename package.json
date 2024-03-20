@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "b4a": "^1.3.1",
+    "bare-process": "^1.3.2",
     "hi-base32": "^0.5.1",
     "hyperdht": "^6.5.3",
     "queue-tick": "^1.0.0",
-    "sodium-universal": "^3.0.4",
+    "sodium-universal": "^4.0.1",
     "streamx": "^2.10.0"
   },
   "devDependencies": {
