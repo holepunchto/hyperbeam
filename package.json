@@ -18,6 +18,12 @@
     "sodium-universal": "^4.0.1",
     "streamx": "^2.10.0"
   },
+  "imports": {
+    "process": {
+      "bare": "bare-process",
+      "default": "process"
+    }
+  },
   "devDependencies": {
     "standard": "^16.0.4"
   },

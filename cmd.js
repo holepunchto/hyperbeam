@@ -1,6 +1,5 @@
 const Hyperbeam = require('./')
-
-if (global.Bare) process = require('bare-process') // eslint-disable-line
+global.process = require('process') // eslint-disable-line
 
 module.exports = (argv) => {
   if (argv.includes('-h') || argv.includes('--help')) {
