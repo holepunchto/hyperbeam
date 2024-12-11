@@ -7,7 +7,7 @@ if (process.argv.includes('-h') || process.argv.includes('--help')) {
   console.error('')
   console.error('  Creates a 1-1 end-to-end encrypted network pipe.')
   console.error('  If a passphrase is not supplied, will create a new phrase and begin listening.')
-  process.exit(1)
+  process.exit(0)
 }
 
 let beam
