@@ -18,7 +18,9 @@
     "streamx": "^2.22.0"
   },
   "devDependencies": {
-    "standard": "^17.1.2"
+    "lunte": "^1.8.6",
+    "prettier": "^3.9.10",
+    "prettier-config-holepunch": "^2.0.0"
   },
   "repository": {
     "type": "git",
