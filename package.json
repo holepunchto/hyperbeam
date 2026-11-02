@@ -7,7 +7,9 @@
     "hyperbeam": "./bin.js"
   },
   "scripts": {
-    "test": "standard"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run format:check && lunte"
   },
   "dependencies": {
     "b4a": "^1.6.7",
@@ -18,7 +20,9 @@
     "streamx": "^2.22.0"
   },
   "devDependencies": {
-    "standard": "^17.1.2"
+    "lunte": "^1.8.0",
+    "prettier": "^3.7.4",
+    "prettier-config-holepunch": "^2.0.0"
   },
   "repository": {
     "type": "git",

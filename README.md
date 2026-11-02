@@ -8,7 +8,7 @@ npm install hyperbeam
 
 ## Usage
 
-``` js
+```js
 const Hyperbeam = require('hyperbeam')
 
 // 'neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa' is 32-byte unique passphrase
@@ -56,7 +56,7 @@ That's it! Happy piping.
 #### `const stream = new Hyperbeam([key][, options])`
 
 Make a new Hyperbeam duplex stream.
- 
+
 Will auto connect to another peer using the same key with an end to end encrypted tunnel.
 
 When the other peer writes it's emitted as `data` on this stream.
