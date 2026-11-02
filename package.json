@@ -24,7 +24,8 @@
     "lunte": "^1.8.0",
     "newline-decoder": "^1.0.2",
     "prettier": "^3.7.4",
-    "prettier-config-holepunch": "^2.0.0"
+    "prettier-config-holepunch": "^2.0.0",
+    "which-runtime": "^1.4.0"
   },
   "repository": {
     "type": "git",
