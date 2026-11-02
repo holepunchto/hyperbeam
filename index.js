@@ -6,7 +6,7 @@ const b32 = require('hi-base32')
 const DHT = require('hyperdht')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor (key, options) {
+  constructor(key, options) {
     super()
 
     if (typeof key !== 'string') {
@@ -39,11 +39,11 @@ module.exports = class Hyperbeam extends Duplex {
     this._onread = null
   }
 
-  get connected () {
+  get connected() {
     return !!this._out
   }
 
-  _ondrainDone (err) {
+  _ondrainDone(err) {
     if (this._ondrain) {
       const cb = this._ondrain
       this._ondrain = null
@@ -51,7 +51,7 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _onreadDone (err) {
+  _onreadDone(err) {
     if (this._onread) {
       const cb = this._onread
       this._onread = null
@@ -59,7 +59,7 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  _onopenDone (err) {
+  _onopenDone(err) {
     if (this._onopen) {
       const cb = this._onopen
       this._onopen = null
@@ -67,14 +67,14 @@ module.exports = class Hyperbeam extends Duplex {
     }
   }
 
-  async _open (cb) {
+  async _open(cb) {
     const keyPair = DHT.keyPair(fromBase32(this.key))
 
     this._onopen = cb
 
     if (!this._node) this._node = new DHT({ ephemeral: true })
 
-    const onConnection = s => {
+    const onConnection = (s) => {
       s.on('data', (data) => {
         if (!this._inc) {
           this._inc = s
@@ -102,7 +102,7 @@ module.exports = class Hyperbeam extends Duplex {
 
     if (this.announce) {
       this._server = this._node.createServer({
-        firewall (remotePublicKey) {
+        firewall(remotePublicKey) {
           return !b4a.equals(remotePublicKey, keyPair.publicKey)
         }
       })
@@ -132,23 +132,23 @@ module.exports = class Hyperbeam extends Duplex {
     onConnection(connection)
   }
 
-  _read (cb) {
+  _read(cb) {
     this._onread = cb
     if (this._inc) this._inc.resume()
   }
 
-  _push (data) {
+  _push(data) {
     const res = this.push(data)
     queueTick(() => this._onreadDone(null))
     return res
   }
 
-  _write (data, cb) {
+  _write(data, cb) {
     if (this._out.write(data) !== false) return cb(null)
     this._ondrain = cb
   }
 
-  _final (cb) {
+  _final(cb) {
     const done = () => {
       this._out.removeListener('finish', done)
       this._out.removeListener('error', done)
@@ -160,7 +160,7 @@ module.exports = class Hyperbeam extends Duplex {
     this._out.on('error', done)
   }
 
-  _predestroy () {
+  _predestroy() {
     if (this._inc) this._inc.destroy()
     if (this._out) this._out.destroy()
     const err = new Error('Destroyed')
@@ -169,23 +169,23 @@ module.exports = class Hyperbeam extends Duplex {
     this._ondrainDone(err)
   }
 
-  async _destroy (cb) {
+  async _destroy(cb) {
     if (!this._node) return cb(null)
-    if (this._server) await this._server.close().catch(e => undefined)
-    await this._node.destroy().catch(e => undefined)
+    if (this._server) await this._server.close().catch((e) => undefined)
+    await this._node.destroy().catch((e) => undefined)
     cb(null)
   }
 }
 
-function toBase32 (buf) {
+function toBase32(buf) {
   return b32.encode(buf).replace(/=/g, '').toLowerCase()
 }
 
-function fromBase32 (str) {
+function fromBase32(str) {
   return b4a.from(b32.decode.asBytes(str.toUpperCase()))
 }
 
-function randomBytes (length) {
+function randomBytes(length) {
   const buffer = b4a.alloc(length)
   sodium.randombytes_buf(buffer)
   return buffer

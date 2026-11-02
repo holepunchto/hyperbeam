@@ -16,7 +16,9 @@ try {
 } catch (e) {
   if (e.constructor.name === 'PassphraseError') {
     console.error(e.message)
-    console.error('(If you are attempting to create a new pipe, do not provide a phrase and hyperbeam will generate one for you.)')
+    console.error(
+      '(If you are attempting to create a new pipe, do not provide a phrase and hyperbeam will generate one for you.)'
+    )
     process.exit(1)
   } else {
     throw e
@@ -25,7 +27,9 @@ try {
 
 if (beam.announce) {
   console.error('[hyperbeam] Run hyperbeam ' + beam.key + ' to connect')
-  console.error('[hyperbeam] To restart this side of the pipe with the same key add -r to the above')
+  console.error(
+    '[hyperbeam] To restart this side of the pipe with the same key add -r to the above'
+  )
 } else {
   console.error('[hyperbeam] Connecting pipe...')
 }
@@ -54,7 +58,7 @@ process.once('SIGINT', () => {
   else beam.end()
 })
 
-function closeASAP () {
+function closeASAP() {
   console.error('[hyperbeam] Shutting down beam...')
 
   const timeout = setTimeout(() => process.exit(1), 2000)
