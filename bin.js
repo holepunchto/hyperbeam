@@ -16,7 +16,7 @@ let dht = null
 const bootstrapIndex = process.argv.indexOf('--bootstrap')
 if (bootstrapIndex !== -1) {
   const value = process.argv[bootstrapIndex + 1]
-  const [host, port] = (value || '').split(':')
+  const [host, port] = value.split(':')
   dht = new DHT({ bootstrap: [{ host, port: Number(port) }] })
   process.argv.splice(bootstrapIndex, 2) // keep argv[2] as the passphrase
 }
