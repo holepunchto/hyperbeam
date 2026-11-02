@@ -8,7 +8,7 @@ const NewlineDecoder = require('newline-decoder')
 
 const EXECUTABLE = path.join(__dirname, 'bin.js')
 
-test('pipes stdin of one process to stdout of the other', async (t) => {
+test('basic happy path', async (t) => {
   const { bootstrap } = await createTestnet(10, t.teardown)
   const bootstrapArg = `${bootstrap[0].host}:${bootstrap[0].port}`
 
@@ -21,7 +21,36 @@ test('pipes stdin of one process to stdout of the other', async (t) => {
 
   const client = spawnHyperbeam(t, key, '--bootstrap', bootstrapArg)
 
-  await waitForOutput(client.stderr, 'Connecting pipe')
+  const received = waitForOutput(server.stdout, 'hello from client')
+  client.stdin.write('hello from client\n')
+
+  t.is((await received).trim(), 'hello from client', 'message arrives')
+
+  const serverExit = once(server, 'exit')
+  const clientExit = once(client, 'exit')
+  client.kill('SIGINT')
+
+  const [clientCode] = await clientExit
+  const [serverCode] = await serverExit
+
+  t.is(clientCode, 0, 'client exits cleanly')
+  t.is(serverCode, 0, 'server exits cleanly')
+})
+
+test('-r announces with an existing key', async (t) => {
+  const { bootstrap } = await createTestnet(10, t.teardown)
+  const bootstrapArg = `${bootstrap[0].host}:${bootstrap[0].port}`
+
+  const key = 'a'.repeat(52)
+
+  const server = spawnHyperbeam(t, key, '-r', '--bootstrap', bootstrapArg)
+
+  const serverSetupProm = waitForOutput(server.stderr, 'Joined the DHT')
+  const keyLine = await waitForOutput(server.stderr, 'Run hyperbeam')
+  t.is(keyLine.match(/Run hyperbeam (\S+)/)[1], key, 'correctkey')
+  await serverSetupProm
+
+  const client = spawnHyperbeam(t, key, '--bootstrap', bootstrapArg)
 
   const received = waitForOutput(server.stdout, 'hello from client')
   client.stdin.write('hello from client\n')
@@ -49,7 +78,7 @@ function spawnHyperbeam(t, ...args) {
   return proc
 }
 
-function waitForOutput(stream, text, timeout = 30_000) {
+function waitForOutput(stream, text, timeout = 10000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Timeout waiting for "${text}"`))
