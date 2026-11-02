@@ -10,7 +10,7 @@ module.exports = class Hyperbeam extends Duplex {
     super()
 
     if (typeof key !== 'string') {
-      options = key
+      if (!options) options = key
       key = null
     }
 
