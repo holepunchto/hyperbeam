@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const DHT = require('hyperdht')
 const Hyperbeam = require('./')
 
 if (process.argv.includes('-h') || process.argv.includes('--help')) {
@@ -10,9 +11,15 @@ if (process.argv.includes('-h') || process.argv.includes('--help')) {
   process.exit(1)
 }
 
+let dht = null
+if (process.env.HYPERBEAM_BOOTSTRAP) {
+  const [host, port] = process.env.HYPERBEAM_BOOTSTRAP.split(':')
+  dht = new DHT({ ephemeral: true, bootstrap: [{ host, port: Number(port) }] })
+}
+
 let beam
 try {
-  beam = new Hyperbeam(process.argv[2], process.argv.includes('-r'))
+  beam = new Hyperbeam(process.argv[2], { announce: process.argv.includes('-r'), dht })
 } catch (e) {
   if (e.constructor.name === 'PassphraseError') {
     console.error(e.message)
