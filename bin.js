@@ -11,14 +11,10 @@ if (process.argv.includes('-h') || process.argv.includes('--help')) {
   process.exit(1)
 }
 
-// For tests (--bootstrap host:port)
 let dht = null
-const bootstrapIndex = process.argv.indexOf('--bootstrap')
-if (bootstrapIndex !== -1) {
-  const value = process.argv[bootstrapIndex + 1]
-  const [host, port] = value.split(':')
+if (process.env.HYPERBEAM_BOOTSTRAP) {
+  const [host, port] = process.env.HYPERBEAM_BOOTSTRAP.split(':')
   dht = new DHT({ ephemeral: true, bootstrap: [{ host, port: Number(port) }] })
-  process.argv.splice(bootstrapIndex, 2) // keep argv[2] as the passphrase
 }
 
 let beam

@@ -12,14 +12,14 @@ test('basic happy path', async (t) => {
   const { bootstrap } = await createTestnet(10, t.teardown)
   const bootstrapArg = `${bootstrap[0].host}:${bootstrap[0].port}`
 
-  const server = spawnHyperbeam(t, '--bootstrap', bootstrapArg)
+  const server = spawnHyperbeam(t, bootstrapArg)
 
   const serverSetupProm = waitForOutput(server.stderr, 'Joined the DHT')
   const keyLine = await waitForOutput(server.stderr, 'Run hyperbeam')
   const key = keyLine.match(/Run hyperbeam (\S+)/)[1]
   await serverSetupProm
 
-  const client = spawnHyperbeam(t, key, '--bootstrap', bootstrapArg)
+  const client = spawnHyperbeam(t, bootstrapArg, key)
 
   const received = waitForOutput(server.stdout, 'hello from client')
   client.stdin.write('hello from client\n')
@@ -43,14 +43,14 @@ test('-r announces with an existing key', async (t) => {
 
   const key = 'a'.repeat(52)
 
-  const server = spawnHyperbeam(t, key, '-r', '--bootstrap', bootstrapArg)
+  const server = spawnHyperbeam(t, bootstrapArg, key, '-r')
 
   const serverSetupProm = waitForOutput(server.stderr, 'Joined the DHT')
   const keyLine = await waitForOutput(server.stderr, 'Run hyperbeam')
   t.is(keyLine.match(/Run hyperbeam (\S+)/)[1], key, 'correctkey')
   await serverSetupProm
 
-  const client = spawnHyperbeam(t, key, '--bootstrap', bootstrapArg)
+  const client = spawnHyperbeam(t, bootstrapArg, key)
 
   const received = waitForOutput(server.stdout, 'hello from client')
   client.stdin.write('hello from client\n')
@@ -58,9 +58,10 @@ test('-r announces with an existing key', async (t) => {
   t.is((await received).trim(), 'hello from client', 'message arrives')
 })
 
-function spawnHyperbeam(t, ...args) {
+function spawnHyperbeam(t, bootstrap, ...args) {
   const proc = spawn(process.execPath, [EXECUTABLE, ...args], {
-    stdio: 'pipe'
+    stdio: 'pipe',
+    env: { ...process.env, HYPERBEAM_BOOTSTRAP: bootstrap }
   })
 
   t.teardown(async () => {
