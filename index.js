@@ -2,28 +2,23 @@ const { Duplex } = require('streamx')
 const sodium = require('sodium-universal')
 const b4a = require('b4a')
 const queueTick = require('queue-tick')
-const b32 = require('hi-base32')
+const z32 = require('z32')
 const DHT = require('hyperdht')
+const isOptions = require('is-options')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor(key, options) {
+  constructor(key, options = {}) {
     super()
 
-    if (typeof key !== 'string') {
-      if (!options) options = key
+    if (isOptions(key)) {
+      options = key
       key = null
-    }
-
-    if (typeof options === 'boolean') {
-      options = { announce: options }
-    } else if (typeof options !== 'object') {
-      options = {}
     }
 
     let announce = !!options.announce
 
     if (!key) {
-      key = toBase32(randomBytes(32))
+      key = z32.encode(randomBytes(32))
       announce = true
     }
 
@@ -68,7 +63,7 @@ module.exports = class Hyperbeam extends Duplex {
   }
 
   async _open(cb) {
-    const keyPair = DHT.keyPair(fromBase32(this.key))
+    const keyPair = DHT.keyPair(z32.decode(this.key))
 
     this._onopen = cb
 
@@ -175,14 +170,6 @@ module.exports = class Hyperbeam extends Duplex {
     await this._node.destroy().catch((e) => undefined)
     cb(null)
   }
-}
-
-function toBase32(buf) {
-  return b32.encode(buf).replace(/=/g, '').toLowerCase()
-}
-
-function fromBase32(str) {
-  return b4a.from(b32.decode.asBytes(str.toUpperCase()))
 }
 
 function randomBytes(length) {
