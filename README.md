@@ -1,6 +1,8 @@
 # hyperbeam
 
-A 1-1 end-to-end encrypted internet pipe powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) and Noise
+A 1-1 end-to-end encrypted internet pipe powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) and Noise.
+
+Warning: the z32 encoding changed between v3 and v4, and they are NOT compatible. When using the CLI, V4 hyperbeams cannot connect with v3 hyperbeams and vice versa.
 
 ```
 npm install hyperbeam
@@ -11,10 +13,11 @@ npm install hyperbeam
 ```js
 const Hyperbeam = require('hyperbeam')
 
-// 'neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa' is 32-byte unique passphrase
+// '734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo' is a 32-byte unique passphrase
 // to find the other side of your pipe.
+// Use a different, random passphrase.
 // once the other peer is discovered it is used to derive a noise keypair as well.
-const beam = new Hyperbeam('neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa')
+const beam = new Hyperbeam('734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo')
 
 // to generate a passphrase, leave the constructor empty and hyperbeam will generate one for you
 // const beam = new Hyperbeam()
@@ -25,10 +28,6 @@ process.stdin.pipe(beam).pipe(process.stdout)
 ```
 
 ## CLI
-
-Part of the [Hyperspace CLI, hyp](https://github.com/hypercore-protocol/cli)
-
-Provided here as a standalone CLI as well.
 
 First install it
 
@@ -42,11 +41,17 @@ Then on one machine run
 echo 'hello world' | hyperbeam
 ```
 
-This will generate a phrase, eg "neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa". Then on another machine run
+This will generate a phrase, eg "734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo". Then on another machine run
 
 ```sh
 # will print "hello world"
-hyperbeam neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa
+hyperbeam 734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo
+```
+
+To start a hyperbeam with a predefined key, use -r:
+
+```
+hyperbeam 734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo -r
 ```
 
 That's it! Happy piping.
@@ -68,6 +73,8 @@ If you do not pass a `key` into the constructor (the passphrase), one will be ge
 `options` include:
 
 - `dht`: A DHT instance. Defaults to a new instance.
+- `announce`: set true to announce on the dht (initiator side). Default false
+-
 
 #### `stream.key`
 
