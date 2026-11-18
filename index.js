@@ -2,12 +2,12 @@ const { Duplex } = require('streamx')
 const sodium = require('sodium-universal')
 const b4a = require('b4a')
 const queueTick = require('queue-tick')
-const z32 = require('z32')
+const IdEnc = require('hypercore-id-encoding')
 const DHT = require('hyperdht')
 const isOptions = require('is-options')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor(key, options = {}) {
+  constructor(key, options) {
     super()
 
     if (isOptions(key)) {
@@ -15,10 +15,13 @@ module.exports = class Hyperbeam extends Duplex {
       key = null
     }
 
+    if (key) key = IdEnc.normalize(key)
+    if (!options) options = {}
+
     let announce = !!options.announce
 
     if (!key) {
-      key = z32.encode(randomBytes(32))
+      key = IdEnc.encode(randomBytes(32))
       announce = true
     }
 
@@ -63,7 +66,7 @@ module.exports = class Hyperbeam extends Duplex {
   }
 
   async _open(cb) {
-    const keyPair = DHT.keyPair(z32.decode(this.key))
+    const keyPair = DHT.keyPair(IdEnc.decode(this.key))
 
     this._onopen = cb
 
