@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
+const { once } = require('events')
+const goodbye = require('graceful-goodbye')
 const DHT = require('hyperdht')
+const IdEnc = require('hypercore-id-encoding')
 const Hyperbeam = require('./')
 
 if (process.argv.includes('-h') || process.argv.includes('--help')) {
@@ -17,20 +20,20 @@ if (process.env.HYPERBEAM_BOOTSTRAP) {
   dht = new DHT({ ephemeral: true, bootstrap: [{ host, port: Number(port) }] })
 }
 
-let beam
-try {
-  beam = new Hyperbeam(process.argv[2], { announce: process.argv.includes('-r'), dht })
-} catch (e) {
-  if (e.constructor.name === 'PassphraseError') {
-    console.error(e.message)
+let key = process.argv[2] || null
+if (key) {
+  try {
+    key = IdEnc.normalize(key)
+  } catch (e) {
+    console.error('[hyperbeam] Invalid passphrase: ' + e.message)
     console.error(
       '(If you are attempting to create a new pipe, do not provide a phrase and hyperbeam will generate one for you.)'
     )
     process.exit(1)
-  } else {
-    throw e
   }
 }
+
+const beam = new Hyperbeam(key, { announce: process.argv.includes('-r'), dht })
 
 if (beam.announce) {
   console.error('[hyperbeam] Run hyperbeam ' + beam.key + ' to connect')
@@ -52,7 +55,8 @@ beam.on('connected', function () {
 
 beam.on('error', function (e) {
   console.error('[hyperbeam] Error:', e.message)
-  closeASAP()
+  process.exitCode = 1
+  goodbye.exit()
 })
 
 beam.on('end', () => beam.end())
@@ -60,17 +64,19 @@ beam.on('end', () => beam.end())
 process.stdin.pipe(beam).pipe(process.stdout)
 if (typeof process.stdin.unref === 'function') process.stdin.unref()
 
-process.once('SIGINT', () => {
-  if (!beam.connected) closeASAP()
-  else beam.end()
-})
+goodbye(async function () {
+  if (beam.destroyed) return
 
-function closeASAP() {
-  console.error('[hyperbeam] Shutting down beam...')
-
+  const closed = once(beam, 'close')
   const timeout = setTimeout(() => process.exit(1), 2000)
-  beam.destroy()
-  beam.on('close', function () {
-    clearTimeout(timeout)
-  })
-}
+
+  if (beam.connected && !beam.destroying) {
+    beam.end()
+  } else {
+    console.error('[hyperbeam] Shutting down beam...')
+    beam.destroy()
+  }
+
+  await closed
+  clearTimeout(timeout)
+})
