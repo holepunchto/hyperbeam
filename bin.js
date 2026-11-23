@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const DHT = require('hyperdht')
+const IdEnc = require('hypercore-id-encoding')
 const Hyperbeam = require('./')
 
 if (process.argv.includes('-h') || process.argv.includes('--help')) {
@@ -17,20 +18,20 @@ if (process.env.HYPERBEAM_BOOTSTRAP) {
   dht = new DHT({ ephemeral: true, bootstrap: [{ host, port: Number(port) }] })
 }
 
-let beam
-try {
-  beam = new Hyperbeam(process.argv[2], { announce: process.argv.includes('-r'), dht })
-} catch (e) {
-  if (e.constructor.name === 'PassphraseError') {
+let key = process.argv[2] || null
+if (key) {
+  try {
+    key = IdEnc.normalize(key)
+  } catch (e) {
     console.error(e.message)
     console.error(
       '(If you are attempting to create a new pipe, do not provide a phrase and hyperbeam will generate one for you.)'
     )
     process.exit(1)
-  } else {
-    throw e
   }
 }
+
+const beam = new Hyperbeam(key, { announce: process.argv.includes('-r'), dht })
 
 if (beam.announce) {
   console.error('[hyperbeam] Run hyperbeam ' + beam.key + ' to connect')
