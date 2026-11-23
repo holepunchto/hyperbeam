@@ -70,7 +70,7 @@ goodbye(async function () {
   const closed = once(beam, 'close')
   const timeout = setTimeout(() => process.exit(1), 2000)
 
-  if (beam.connected && !beam.destroying) {
+  if (beam.connected) {
     beam.end()
   } else {
     console.error('[hyperbeam] Shutting down beam...')
