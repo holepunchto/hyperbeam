@@ -12,12 +12,6 @@ if (process.argv.includes('-h') || process.argv.includes('--help')) {
   process.exit(1)
 }
 
-let dht = null
-if (process.env.HYPERBEAM_BOOTSTRAP) {
-  const [host, port] = process.env.HYPERBEAM_BOOTSTRAP.split(':')
-  dht = new DHT({ ephemeral: true, bootstrap: [{ host, port: Number(port) }] })
-}
-
 let key = process.argv[2] || null
 if (key) {
   try {
@@ -31,7 +25,15 @@ if (key) {
   }
 }
 
-const beam = new Hyperbeam(key, { announce: process.argv.includes('-r'), dht })
+const dhtOpts = { ephemeral: true }
+if (process.env.HYPERBEAM_BOOTSTRAP) {
+  const [host, port] = process.env.HYPERBEAM_BOOTSTRAP.split(':')
+  dhtOpts.bootstrap = [{ host, port: Number(port) }]
+}
+
+const dht = new DHT(dhtOpts)
+const beam = new Hyperbeam(dht, key, { announce: process.argv.includes('-r') })
+beam.on('close', () => dht.destroy())
 
 if (beam.announce) {
   console.error('[hyperbeam] Run hyperbeam ' + beam.key + ' to connect')

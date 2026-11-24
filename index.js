@@ -7,7 +7,7 @@ const DHT = require('hyperdht')
 const isOptions = require('is-options')
 
 module.exports = class Hyperbeam extends Duplex {
-  constructor(key, options) {
+  constructor(dht, key, options) {
     super()
 
     if (isOptions(key)) {
@@ -27,8 +27,10 @@ module.exports = class Hyperbeam extends Duplex {
 
     this.key = key
     this.announce = announce
-    this._node = options.dht || null
+    this.dht = dht
+
     this._server = null
+    this._connection = null
     this._out = null
     this._inc = null
     this._now = Date.now()
@@ -70,8 +72,6 @@ module.exports = class Hyperbeam extends Duplex {
 
     this._onopen = cb
 
-    if (!this._node) this._node = new DHT({ ephemeral: true })
-
     const onConnection = (s) => {
       s.on('data', (data) => {
         if (!this._inc) {
@@ -99,7 +99,7 @@ module.exports = class Hyperbeam extends Duplex {
     }
 
     if (this.announce) {
-      this._server = this._node.createServer({
+      this._server = this.dht.createServer({
         firewall(remotePublicKey) {
           return !b4a.equals(remotePublicKey, keyPair.publicKey)
         }
@@ -111,11 +111,12 @@ module.exports = class Hyperbeam extends Duplex {
         this._onopenDone(err)
         return
       }
-      this.emit('remote-address', { host: this._node.host, port: this._node.port })
+      this.emit('remote-address', { host: this.dht.host, port: this.dht.port })
       return
     }
 
-    const connection = this._node.connect(keyPair.publicKey, { keyPair })
+    const connection = this.dht.connect(keyPair.publicKey, { keyPair })
+    this._connection = connection
     try {
       await new Promise((resolve, reject) => {
         connection.once('open', resolve)
@@ -126,7 +127,7 @@ module.exports = class Hyperbeam extends Duplex {
       this._onopenDone(err)
       return
     }
-    this.emit('remote-address', { host: this._node.host, port: this._node.port })
+    this.emit('remote-address', { host: this.dht.host, port: this.dht.port })
     onConnection(connection)
   }
 
@@ -159,6 +160,7 @@ module.exports = class Hyperbeam extends Duplex {
   }
 
   _predestroy() {
+    if (this._connection) this._connection.destroy()
     if (this._inc) this._inc.destroy()
     if (this._out) this._out.destroy()
     const err = new Error('Destroyed')
@@ -168,9 +170,7 @@ module.exports = class Hyperbeam extends Duplex {
   }
 
   async _destroy(cb) {
-    if (!this._node) return cb(null)
     if (this._server) await this._server.close().catch((e) => undefined)
-    await this._node.destroy().catch((e) => undefined)
     cb(null)
   }
 }

@@ -11,15 +11,18 @@ npm install hyperbeam
 ## Usage
 
 ```js
+const DHT = require('hyperdht')
 const Hyperbeam = require('hyperbeam')
+
+const dht = new DHT()
 
 // '734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo' is a 32-byte unique passphrase
 // to find the other side of your pipe.
 // once the other peer is discovered it is used to derive a noise keypair as well.
-const beam = new Hyperbeam('734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo')
+const beam = new Hyperbeam(dht, '734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo')
 
-// to generate a passphrase, leave the constructor empty and hyperbeam will generate one for you
-// const beam = new Hyperbeam()
+// to generate a passphrase, leave out the key and hyperbeam will generate one for you
+// const beam = new Hyperbeam(dht)
 // beam.key // <-- your passphrase
 
 // make a little chat app
@@ -51,9 +54,11 @@ That's it! Happy piping.
 
 ## API
 
-#### `const stream = new Hyperbeam([key][, options])`
+#### `const stream = new Hyperbeam(dht, [key][, options])`
 
 Make a new Hyperbeam duplex stream.
+
+`dht` is a [HyperDHT](https://github.com/holepunchto/hyperdht) instance. The caller owns it (the beam never destroys it).
 
 Will auto connect to another peer using the same key with an end to end encrypted tunnel.
 
@@ -67,7 +72,6 @@ If you do not pass a `key` into the constructor (the passphrase), one will be ge
 
 `options` include:
 
-- `dht`: A DHT instance. Defaults to a new instance.
 - `announce`: set true to announce on the dht (listening side). Always true when no key is passed, otherwise defaults to false.
 
 #### `stream.key`

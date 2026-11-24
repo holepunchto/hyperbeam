@@ -88,13 +88,16 @@ test('hyperbeam basic happy path', async function (t) {
 
   const testnet = await createTestnet(10)
 
-  const a = new Hyperbeam({ dht: new DHT({ bootstrap: testnet.bootstrap }) })
+  const dhtA = new DHT({ bootstrap: testnet.bootstrap })
+  const dhtB = new DHT({ bootstrap: testnet.bootstrap })
+
+  const a = new Hyperbeam(dhtA)
   a.once('data', function (data) {
     t.alike(data, b4a.from('hello from b'), 'a received data from b')
   })
   await once(a, 'remote-address')
 
-  const b = new Hyperbeam(a.key, { dht: new DHT({ bootstrap: testnet.bootstrap }) })
+  const b = new Hyperbeam(dhtB, a.key)
   b.once('data', function (data) {
     t.alike(data, b4a.from('hello from a'), 'b received data from a')
   })
@@ -107,6 +110,8 @@ test('hyperbeam basic happy path', async function (t) {
     a.destroy()
     b.destroy()
     await closed
+    await dhtA.destroy()
+    await dhtB.destroy()
     await testnet.destroy()
   })
 
