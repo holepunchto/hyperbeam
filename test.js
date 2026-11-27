@@ -5,6 +5,10 @@ const process = require('process')
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const NewlineDecoder = require('newline-decoder')
+const b4a = require('b4a')
+const DHT = require('hyperdht')
+
+const Hyperbeam = require('.')
 
 const EXECUTABLE = path.join(__dirname, 'bin.js')
 
@@ -41,7 +45,7 @@ test('-r announces with an existing key', async (t) => {
   const { bootstrap } = await createTestnet(10, t.teardown)
   const bootstrapArg = `${bootstrap[0].host}:${bootstrap[0].port}`
 
-  const key = 'a'.repeat(52)
+  const key = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbby'
 
   const server = spawnHyperbeam(t, bootstrapArg, key, '-r')
 
@@ -78,6 +82,42 @@ function spawnHyperbeam(t, bootstrap, ...args) {
 
   return proc
 }
+
+test('hyperbeam basic happy path', async function (t) {
+  t.plan(4)
+
+  const testnet = await createTestnet(10)
+
+  const dhtA = new DHT({ bootstrap: testnet.bootstrap })
+  const dhtB = new DHT({ bootstrap: testnet.bootstrap })
+
+  const a = new Hyperbeam(dhtA)
+  a.once('data', function (data) {
+    t.alike(data, b4a.from('hello from b'), 'a received data from b')
+  })
+  await once(a, 'remote-address')
+
+  const b = new Hyperbeam(dhtB, a.key)
+  b.once('data', function (data) {
+    t.alike(data, b4a.from('hello from a'), 'b received data from a')
+  })
+
+  t.ok(a.announce, 'announces when no key is passed')
+  t.absent(b.announce, 'does not announce when key is passed')
+
+  t.teardown(async () => {
+    const closed = Promise.all([once(a, 'close'), once(b, 'close')])
+    a.destroy()
+    b.destroy()
+    await closed
+    await dhtA.destroy()
+    await dhtB.destroy()
+    await testnet.destroy()
+  })
+
+  a.write(b4a.from('hello from a'))
+  b.write(b4a.from('hello from b'))
+})
 
 function waitForOutput(stream, text, timeout = 10000) {
   return new Promise((resolve, reject) => {

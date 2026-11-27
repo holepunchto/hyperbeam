@@ -1,6 +1,8 @@
 # hyperbeam
 
-A 1-1 end-to-end encrypted internet pipe powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) and Noise
+A 1-1 end-to-end encrypted internet pipe powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) and Noise.
+
+Warning: the base32 encoding changed between v3 and v4, and they are NOT compatible. V4 hyperbeams cannot connect with v3 hyperbeams and vice versa.
 
 ```
 npm install hyperbeam
@@ -9,15 +11,18 @@ npm install hyperbeam
 ## Usage
 
 ```js
+const DHT = require('hyperdht')
 const Hyperbeam = require('hyperbeam')
 
-// 'neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa' is 32-byte unique passphrase
+const dht = new DHT()
+
+// '734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo' is a 32-byte unique passphrase
 // to find the other side of your pipe.
 // once the other peer is discovered it is used to derive a noise keypair as well.
-const beam = new Hyperbeam('neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa')
+const beam = new Hyperbeam(dht, '734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo')
 
-// to generate a passphrase, leave the constructor empty and hyperbeam will generate one for you
-// const beam = new Hyperbeam()
+// to generate a passphrase, leave out the key and hyperbeam will generate one for you
+// const beam = new Hyperbeam(dht)
 // beam.key // <-- your passphrase
 
 // make a little chat app
@@ -25,10 +30,6 @@ process.stdin.pipe(beam).pipe(process.stdout)
 ```
 
 ## CLI
-
-Part of the [Hyperspace CLI, hyp](https://github.com/hypercore-protocol/cli)
-
-Provided here as a standalone CLI as well.
 
 First install it
 
@@ -42,20 +43,22 @@ Then on one machine run
 echo 'hello world' | hyperbeam
 ```
 
-This will generate a phrase, eg "neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa". Then on another machine run
+This will generate a phrase, eg "734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo". Then on another machine run
 
 ```sh
 # will print "hello world"
-hyperbeam neznr3z3j44l7q7sgynbzpdrdlpausurbpcmqvwupmuoidolbopa
+hyperbeam 734x69cki46bkbbz75f4c3wh8xicx5zfhajfbhrgnquki66imafo
 ```
 
 That's it! Happy piping.
 
 ## API
 
-#### `const stream = new Hyperbeam([key][, options])`
+#### `const stream = new Hyperbeam(dht, [key][, options])`
 
 Make a new Hyperbeam duplex stream.
+
+`dht` is a [HyperDHT](https://github.com/holepunchto/hyperdht) instance. The caller owns it (the beam never destroys it).
 
 Will auto connect to another peer using the same key with an end to end encrypted tunnel.
 
@@ -65,13 +68,15 @@ Likewise when you write to this stream it's emitted as `data` on the other peers
 
 If you do not pass a `key` into the constructor (the passphrase), one will be generated and put on `stream.key`.
 
+`key` can be z32, hex or buffer.
+
 `options` include:
 
-- `dht`: A DHT instance. Defaults to a new instance.
+- `announce`: set true to announce on the dht (listening side). Always true when no key is passed, otherwise defaults to false.
 
 #### `stream.key`
 
-The passphrase used by the stream for connection.
+The passphrase used by the stream for connection (z32).
 
 ## License
 
