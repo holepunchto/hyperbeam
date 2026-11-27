@@ -33,12 +33,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mafintosh/hyperbeam.git"
+    "url": "https://github.com/holepunchto/hyperbeam.git"
   },
-  "author": "Mathias Buus (@mafintosh)",
-  "license": "MIT",
+  "author": "Holepunch Inc.",
+  "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/mafintosh/hyperbeam/issues"
+    "url": "https://github.com/holepunchto/hyperbeam/issues"
   },
-  "homepage": "https://github.com/mafintosh/hyperbeam"
+  "homepage": "https://github.com/holepunchto/hyperbeam"
 }
